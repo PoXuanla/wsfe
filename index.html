@@ -103,6 +103,7 @@
     // 接收消息
     socket.on("receive_message", (data) => {
       console.log("receive_message")
+      currentRoom = data.room;
       addMessage(`收到消息: ${data.content} (來自: ${data.user})`);
     });
 
