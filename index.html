@@ -1,164 +1,169 @@
 <!DOCTYPE html>
 <html>
-
-<head>
-  <title>Socket.IO Room Test</title>
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  <style>
-    .container {
-      max-width: 600px;
-      margin: 20px auto;
-      padding: 20px;
-    }
-
-    .messages {
-      height: 300px;
-      overflow-y: auto;
-      border: 1px solid #ccc;
-      padding: 10px;
-      margin: 10px 0;
-    }
-
-    .input-group {
-      margin: 10px 0;
-    }
-
-    button {
-      margin: 5px;
-      padding: 5px 10px;
-    }
-
-    input {
-      padding: 5px;
-      width: 200px;
-    }
-  </style>
-</head>
-
-<body>
-  <div class="container">
-    <div class="input-group">
-      <input type="text" id="roomInput" placeholder="輸入房間名稱" />
-      <button onclick="joinRoom()">加入房間</button>
-    </div>
-
-    <div class="input-group">
-      <input type="text" id="messageInput" placeholder="輸入消息" />
-      <button onclick="sendMessage()">發送消息</button>
-    </div>
-
-    <div class="input-group">
-      <button onclick="disconnect()">模擬斷線</button>
-    </div>
-
-    <div class="input-group">
-      <button onclick="reconnect()">手動重連</button>
-    </div>
-    <div class="messages" id="messages"></div>
-  </div>
-
-  <script>
-    let clientId = localStorage.getItem("clientId");
-    if (!clientId) {
-      clientId = generateClientId();
-      localStorage.setItem("clientId", clientId);
-    }
-
-    // 生成唯一的客戶端 ID
-    function generateClientId() {
-      return "client_" + Math.random().toString(36).substring(7);
-    }
-
-    const socket = io("http://localhost:3000", {
-      // 重連配置
-      reconnection: true, // 啟用重連
-      reconnectionAttempts: 5, // 最大重試次數
-      reconnectionDelay: 1000, // 重試間隔（毫秒）
-      reconnectionDelayMax: 5000, // 最大重試間隔
-      timeout: 20000, // 連接超時時間
-      autoConnect: true, // 自動連接
-      // 添加認證信息`
-      auth: {
-        clientId: localStorage.getItem("clientId"), // 從 localStorage 獲取之前的 ID
-      },
-    });
-
-    let currentRoom = "";
-    let reconnectAttempts = 0;
-    const maxReconnectAttempts = 5;
-    // 連接成功
-    socket.on("connect", () => {
-     
-      reconnectAttempts = 0;
-
-      addMessage(`已連接到服務器e (ID: ${clientId})`);
-
-      // 如果之前有房間，重新加入
-      if (currentRoom) {
-        socket.emit("join_room", currentRoom);
-        addMessage(`重新加入房間: ${currentRoom}`);
-      }
-    });
-
-    // 接收消息
-    socket.on("receive_message", (data) => {
-      console.log("receive_message")
-      currentRoom = data.room;
-      addMessage(`收到消息: ${data.content} (來自: ${data.user})`);
-    });
-
-    socket.on("roomUserCount", (count) => {
-      addMessage(`現在聊天室人數:${count}人`);
-    });
-
-    // 加入房間
-    function joinRoom() {
-      const roomName = document.getElementById("roomInput").value.trim();
-      if (roomName) {
-        currentRoom = roomName;
-        socket.emit("join_room", roomName);
-        addMessage(`已加入房間: ${roomName}`);
-      }
-    }
-
-    // 發送消息
-    function sendMessage() {
-      if (!currentRoom) {
-        alert("請先加入房間！");
-        return;
+  <head>
+    <title>Socket.IO Room Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+      .container {
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 20px;
       }
 
-      const message = document.getElementById("messageInput").value.trim();
-      if (message) {
-        socket.emit("send_message", {
-          room: currentRoom,
-          content: message,
-          user: socket.id,
+      .messages {
+        height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin: 10px 0;
+      }
+
+      .input-group {
+        margin: 10px 0;
+      }
+
+      button {
+        margin: 5px;
+        padding: 5px 10px;
+      }
+
+      input {
+        padding: 5px;
+        width: 200px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="input-group">
+        <input type="text" id="roomInput" placeholder="輸入房間名稱" />
+        <button onclick="joinRoom()">加入房間</button>
+      </div>
+
+      <div class="input-group">
+        <input type="text" id="messageInput" placeholder="輸入消息" />
+        <button onclick="sendMessage()">發送消息</button>
+      </div>
+
+      <div class="input-group">
+        <button onclick="disconnect()">模擬斷線</button>
+      </div>
+
+      <div class="input-group">
+        <button onclick="reconnect()">手動重連</button>
+      </div>
+      <div class="messages" id="messages"></div>
+    </div>
+
+    <script>
+      let clientId = localStorage.getItem("clientId");
+      if (!clientId) {
+        clientId = generateClientId();
+        localStorage.setItem("clientId", clientId);
+      }
+
+      // 生成唯一的客戶端 ID
+      function generateClientId() {
+        return "client_" + Math.random().toString(36).substring(7);
+      }
+
+      const socket = io("http://localhost:3000", {
+        // 重連配置
+        reconnection: true, // 啟用重連
+        reconnectionAttempts: 5, // 最大重試次數
+        reconnectionDelay: 1000, // 重試間隔（毫秒）
+        reconnectionDelayMax: 5000, // 最大重試間隔
+        timeout: 20000, // 連接超時時間
+        autoConnect: true, // 自動連接
+        // 添加認證信息`
+        auth: {
+          clientId: localStorage.getItem("clientId"), // 從 localStorage 獲取之前的 ID
+        },
+      });
+
+      let currentRoom = "";
+      let reconnectAttempts = 0;
+      const maxReconnectAttempts = 5;
+      // 連接成功
+      socket.on("connect", () => {
+        reconnectAttempts = 0;
+
+        addMessage(`已連接到服務器e (ID: ${clientId})`);
+
+        // 如果之前有房間，重新加入
+        if (currentRoom) {
+          socket.emit("join_room", currentRoom);
+          addMessage(`重新加入房間: ${currentRoom}`);
+        }
+      });
+
+      // 接收消息
+      socket.on("receive_message", (data) => {
+        console.log("receive_message");
+        currentRoom = data.room;
+        addMessage(`收到消息: ${data.content} (來自: ${data.user})`);
+      });
+
+      socket.on("roomUserCount", (count) => {
+        addMessage(`現在聊天室人數:${count}人`);
+      });
+
+      socket.on("reconnect_getHistory", (data) => {
+        console.log("reconnect_getHistory", data);
+        data.forEach((element) => {
+          addMessage(`收到消息: ${element.content} (來自: ${element.user})`);
         });
-        document.getElementById("messageInput").value = "";
-      }
-    }
+        addMessage(`---以上為歷史訊息---`);
+      });
 
-    function disconnect() {
-      if (socket) {
-        socket.disconnect();
+      // 加入房間
+      function joinRoom() {
+        const roomName = document.getElementById("roomInput").value.trim();
+        if (roomName) {
+          currentRoom = roomName;
+          socket.emit("join_room", roomName);
+          addMessage(`已加入房間: ${roomName}`);
+        }
       }
-    }
-    function reconnect() {
-      if (socket && !socket.connected) {
-        socket.connect();
-        addMessage("正在嘗試手動重連...");
-      }
-    }
-    // 添加消息到界面
-    function addMessage(message) {
-      const messagesDiv = document.getElementById("messages");
-      const messageElement = document.createElement("div");
-      messageElement.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
-      messagesDiv.appendChild(messageElement);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
-  </script>
-</body>
 
+      // 發送消息
+      function sendMessage() {
+        if (!currentRoom) {
+          alert("請先加入房間！");
+          return;
+        }
+
+        const message = document.getElementById("messageInput").value.trim();
+        if (message) {
+          socket.emit("send_message", {
+            room: currentRoom,
+            content: message,
+            user: socket.id,
+          });
+          document.getElementById("messageInput").value = "";
+        }
+      }
+
+      function disconnect() {
+        if (socket) {
+          socket.disconnect();
+        }
+      }
+      function reconnect() {
+        if (socket && !socket.connected) {
+          socket.connect();
+          addMessage("正在嘗試手動重連...");
+        }
+      }
+      // 添加消息到界面
+      function addMessage(message) {
+        const messagesDiv = document.getElementById("messages");
+        const messageElement = document.createElement("div");
+        messageElement.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+        messagesDiv.appendChild(messageElement);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }
+    </script>
+  </body>
 </html>
